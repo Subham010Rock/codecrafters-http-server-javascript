@@ -20,8 +20,13 @@ const server = net.createServer((socket) => {
       socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
     }
     else if(requestTarget=="/user-agent"){
-      const userAgent = httpRequest[3];
-      const userAgentValue = userAgent.split(":")[1]
+      let userAgentValue = "";
+      for(const header of httpRequest){
+        if(header.toLowerCase().startsWith("user-agent:")){
+          userAgentValue = header.split(":")[1].trim();
+          break;
+        }
+      }
       socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgentValue.length}\r\n\r\n${userAgentValue}`);
     }
     else{
