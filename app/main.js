@@ -8,7 +8,17 @@ const server = net.createServer((socket) => {
   socket.on("close", () => {
     socket.end();
   });
-  socket.write('HTTP/1.1 200 OK\r\n\r\n');
+  socket.on("data",(req)=>{
+    const httpRequest = req.toString().split("\r\n");
+    const requestLine = httpRequest[0].split(" ");
+    const requestTarget = requestLine[1];
+    if(requestTarget=="/"){
+      socket.write("HTTP/1.1 200 OK\r\n\r\n");
+    }else{
+      socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+    }
+
+  });
 });
 //
 server.listen(4221, "localhost");
