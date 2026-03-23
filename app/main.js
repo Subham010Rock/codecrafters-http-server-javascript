@@ -14,10 +14,15 @@ const server = net.createServer((socket) => {
     const requestTarget = requestLine[1];
     if(requestTarget=="/"){
       socket.write("HTTP/1.1 200 OK\r\n\r\n");
-    }else{
+    }
+    else if(requestTarget.startsWith("/echo")){
+      const str = requestTarget.split("/")[2];
+      console.log(str.length);
+      socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
+    }
+    else{
       socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
     }
-
   });
 });
 //
