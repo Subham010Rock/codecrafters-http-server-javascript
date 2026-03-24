@@ -24,6 +24,7 @@ const server = net.createServer((socket) => {
     const httpRequest = req.toString().split("\r\n");
     const requestLine = httpRequest[0].split(" ");
     const requestTarget = requestLine[1];
+    const httpMethod = requestLine[0];
     if(requestTarget=="/"){
       socket.write("HTTP/1.1 200 OK\r\n\r\n");
     }
@@ -46,8 +47,15 @@ const server = net.createServer((socket) => {
       const fileName = requestTarget.split("/")[2];
       const fullPath = path.join(absolutePath,fileName);
       if(fs.existsSync(fullPath)){
-        const fileContent = fs.readFileSync(fullPath,'utf-8');
-        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
+        if(httpMethod==="GET"){
+          const fileContent = fs.readFileSync(fullPath,'utf-8');
+          socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
+        }else{
+          // get request body data
+          const data = httpRequest[httpRequest.length-1];
+          fs.writeFileSync(fullPath,data,'utf-8');
+          socket.write("HTTP/1.1 201 Created\r\n\r\n");
+        }
       }else{
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
       }
