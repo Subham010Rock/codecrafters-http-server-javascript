@@ -1,4 +1,16 @@
 const net = require("net");
+const process = require('process');
+const path = require("path");
+const fs = require("fs");
+
+// get the absolute path when program runs with --directory flag
+let absolutePath = "";
+for(let i = 0;i < process.argv.length;i++){
+  if(process.argv[i] == "--directory"){
+    absolutePath = process.argv[i+1];
+    break;
+  }
+}
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -28,6 +40,17 @@ const server = net.createServer((socket) => {
         }
       }
       socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgentValue.length}\r\n\r\n${userAgentValue}`);
+    }
+    else if(requestTarget.startsWith("/files")){
+      //absolutePath variable can be helpful here
+      const fileName = requestTarget.split("/")[2];
+      const fullPath = path.join(absolutePath,fileName);
+      if(fs.existsSync(fullPath)){
+        const fileContent = fs.readFileSync(fullPath,'utf-8');
+        socket.write(`HTTP/1.1 200 OK\r\n\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
+      }else{
+        socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+      }
     }
     else{
       socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
