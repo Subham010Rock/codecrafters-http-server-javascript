@@ -46,17 +46,16 @@ const server = net.createServer((socket) => {
       //absolutePath variable can be helpful here
       const fileName = requestTarget.split("/")[2];
       const fullPath = path.join(absolutePath,fileName);
-      if(fs.existsSync(fullPath)){
-        if(httpMethod==="GET"){
+      if(httpMethod==="GET" && fs.existsSync(fullPath)){
           const fileContent = fs.readFileSync(fullPath,'utf-8');
           socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
-        }else{
-          // get request body data
+      }else if(httpMethod==="POST"){
+        // get request body data
           const data = httpRequest[httpRequest.length-1];
           fs.writeFileSync(fullPath,data,'utf-8');
           socket.write("HTTP/1.1 201 Created\r\n\r\n");
-        }
-      }else{
+      }
+      else{
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
       }
     }
