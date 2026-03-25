@@ -14,11 +14,11 @@ for(let i = 0;i < process.argv.length;i++){
 // function to check encoding type is gzip
 function getEncoding(httpRequest){
   for(const header of httpRequest){
-    if (header.toLowerCase() === "accept-encoding: gzip"){
-      return true;
+    if (header.toLowerCase().startsWith("accept-encoding")){
+      const encodingTypeList = header.split(":")[1].trim().split(",");
+      return encodingTypeList.some((type)=> type.trim()==="gzip");
     }
   }
-  return false
 }
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
