@@ -11,6 +11,15 @@ for(let i = 0;i < process.argv.length;i++){
     break;
   }
 }
+// function to check encoding type is gzip
+function getEncoding(httpRequest){
+  for(const header of httpRequest){
+    if (header.toLowerCase() === "accept-encoding: gzip"){
+      return true;
+    }
+  }
+  return false
+}
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -30,6 +39,10 @@ const server = net.createServer((socket) => {
     }
     else if(requestTarget.startsWith("/echo")){
       const str = requestTarget.split("/")[2];
+      const isgzipEncoding = getEncoding(httpRequest);
+      if(isgzipEncoding){
+        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
+      }else
       socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
     }
     else if(requestTarget=="/user-agent"){
