@@ -22,10 +22,20 @@ function getEncodingType(httpRequest){
   }
 }
 // function to encode the string sent by client using gzip
-
 function compressed(str){
   return zlib.gzipSync(str);
 }
+
+//fuction to check is request header contain connection property which stores value close
+function checkConnectionHeader(httpRequest){
+  for(const header of httpRequest){
+    if(header.toLowerCase().startsWith("connection: close")){
+      return true;
+    }
+  }
+  return false;
+}
+
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -41,7 +51,14 @@ const server = net.createServer((socket) => {
     const requestTarget = requestLine[1];
     const httpMethod = requestLine[0];
     if(requestTarget=="/"){
-      socket.write("HTTP/1.1 200 OK\r\n\r\n");
+      // check connectio header
+      if(checkConnectionHeader(httpRequest)){
+        socket.write("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+        socket.end();
+      }
+      else{
+        socket.write("HTTP/1.1 200 OK\r\n\r\n");
+      }
     }
     else if(requestTarget.startsWith("/echo")){
       const str = requestTarget.split("/")[2];
