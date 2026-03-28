@@ -50,8 +50,9 @@ const server = net.createServer((socket) => {
     const requestLine = httpRequest[0].split(" ");
     const requestTarget = requestLine[1];
     const httpMethod = requestLine[0];
+    let isConnectionClose = checkConnectionHeader(httpRequest);
     if(requestTarget=="/"){
-      // check connectio header
+      // check connection header
       if(checkConnectionHeader(httpRequest)){
         socket.write("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
         socket.end();
@@ -73,10 +74,16 @@ const server = net.createServer((socket) => {
         // is an informational or diagnostic message from libcurl 
         // (the underlying library used by many Node.js HTTP clients like node-libcurl or tools like curl.
         // It occurs when the server sends more data than what was specified in the Content-Length header.
-        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${compressedStr.length}\r\n\r\n`);
+        // socket.write(`HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${compressedStr.length}\r\n\r\n`);
+        socket.write(`HTTP/1.1 200 OK\r\n${isConnectionClose?"Connection: close\r\n":""}Content-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${compressedStr.length}\r\n\r\n`);
         socket.write(compressedStr);
-      }else
-      socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
+        if(isConnectionClose)
+          socket.end();
+      }else{
+        socket.write(`HTTP/1.1 200 OK\r\n${isConnectionClose?"Connection: close\r\n":""}Content-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
+        if(isConnectionClose)
+          socket.end();
+      }
     }
     else if(requestTarget=="/user-agent"){
       let userAgentValue = "";
@@ -86,7 +93,9 @@ const server = net.createServer((socket) => {
           break;
         }
       }
-      socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgentValue.length}\r\n\r\n${userAgentValue}`);
+      socket.write(`HTTP/1.1 200 OK\r\n${isConnectionClose?"Connection: close\r\n":""}Content-Type: text/plain\r\nContent-Length: ${userAgentValue.length}\r\n\r\n${userAgentValue}`);
+      if(isConnectionClose)
+        socket.end();
     }
     else if(requestTarget.startsWith("/files")){
       //absolutePath variable can be helpful here
@@ -94,12 +103,16 @@ const server = net.createServer((socket) => {
       const fullPath = path.join(absolutePath,fileName);
       if(httpMethod==="GET" && fs.existsSync(fullPath)){
           const fileContent = fs.readFileSync(fullPath,'utf-8');
-          socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
+          socket.write(`HTTP/1.1 200 OK\r\n${isConnectionClose?"Connection: close\r\n":""}Content-Type: application/octet-stream\r\nContent-Length: ${fileContent.length}\r\n\r\n${fileContent}`);
+          if(isConnectionClose)
+            socket.end();
       }else if(httpMethod==="POST"){
         // get request body data
           const data = httpRequest[httpRequest.length-1];
           fs.writeFileSync(fullPath,data,'utf-8');
-          socket.write("HTTP/1.1 201 Created\r\n\r\n");
+          socket.write(`HTTP/1.1 201 Created\r\n${isConnectionClose?"Connection: close\r\n":""}\r\n`);
+          if(isConnectionClose)
+            socket.end();
       }
       else{
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
