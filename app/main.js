@@ -2,6 +2,7 @@ const net = require("net");
 const process = require('process');
 const path = require("path");
 const fs = require("fs");
+const zlib = require("node:zlib")
 
 // get the absolute path when program runs with --directory flag
 let absolutePath = "";
@@ -12,13 +13,18 @@ for(let i = 0;i < process.argv.length;i++){
   }
 }
 // function to check encoding type is gzip
-function getEncoding(httpRequest){
+function getEncodingType(httpRequest){
   for(const header of httpRequest){
     if (header.toLowerCase().startsWith("accept-encoding")){
       const encodingTypeList = header.split(":")[1].trim().split(",");
       return encodingTypeList.some((type)=> type.trim()==="gzip");
     }
   }
+}
+// function to encode the string sent by client using gzip
+
+function compressed(str){
+  return zlib.gzipSync(str);
 }
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -39,9 +45,19 @@ const server = net.createServer((socket) => {
     }
     else if(requestTarget.startsWith("/echo")){
       const str = requestTarget.split("/")[2];
-      const isgzipEncoding = getEncoding(httpRequest);
+      const isgzipEncoding = getEncodingType(httpRequest);
       if(isgzipEncoding){
-        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
+        // compressed the str using that compress algorithm specified by client(int this case gzip);
+        const compressedStr = compressed(str);
+
+        // why i separately sent header and compressedStr 
+        // because nodejs implicitly convert buffer into string when it is used with string 
+        // due to this client gives The error message "Excess found writing body" 
+        // is an informational or diagnostic message from libcurl 
+        // (the underlying library used by many Node.js HTTP clients like node-libcurl or tools like curl.
+        // It occurs when the server sends more data than what was specified in the Content-Length header.
+        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: ${compressedStr.length}\r\n\r\n`);
+        socket.write(compressedStr);
       }else
       socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${str.length}\r\n\r\n${str}`);
     }
